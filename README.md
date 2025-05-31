@@ -259,10 +259,6 @@ This pattern is typical for async embedded Rust, where the entry point must matc
 - The framework is extensible, with many examples (UART, channels, Ethernet, GPS, etc.) and support for custom HALs.
 - Async is powerful but complex—use it judiciously and leverage Embassy's abstractions and documentation.
 
----
-
-*This section is a detailed technical summary based on a full walkthrough and reverse engineering of the Embassy async framework and its runtime, as described in the accompanying video transcript.*
-
 ## Project-Specific Notes: Async, Embassy, and This Project
 
 - **Why Async?** Async/await is only worth the complexity if you need to maximize performance, minimize memory/bandwidth, or handle many concurrent IO-bound tasks. For simple LED blinking, async is overkill, but this project uses it as a learning and demonstration tool.
@@ -275,8 +271,6 @@ This pattern is typical for async embedded Rust, where the entry point must matc
 - **Debugging and Reverse Engineering:** Use `cargo expand` to see macro expansion and VS Code/probe-rs to step through the actual runtime, including expanded code. This is invaluable for understanding how async/await and the executor work under the hood.
 - **Tradeoffs:** Async is powerful but complex. Use it only when it makes sense for your use case. Embassy hides much of the complexity, but understanding the internals is important for advanced debugging and optimization.
 - **Extensibility:** Embassy is extensible, with many examples for advanced use cases (UART, channels, Ethernet, GPS, etc.). If your board isn’t supported, you can write your own HAL.
-
-This section ensures every relevant detail from the video transcript is explicitly covered and mapped to this project.
 
 ## Usage
 - Press the button: Both the onboard LED and the WS2812 will light up
