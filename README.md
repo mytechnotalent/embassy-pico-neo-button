@@ -85,6 +85,98 @@ cargo build
 - Connect the button between the configured GPIO pin and ground
 - Power the Pico via USB
 
+### 6. Expand the Source Code (Optional, for Exploration)
+To view the fully expanded Rust source code (with all macros and attributes expanded), you can use [`cargo-expand`](https://github.com/dtolnay/cargo-expand):
+
+1. Install `cargo-expand` (if you haven't already):
+   ```sh
+   cargo install cargo-expand
+   ```
+2. Run the following command to generate the expanded source for the main binary:
+   ```sh
+   cargo expand --bin embassy-pico-neo-button > expanded_embassy_pico_neo_button.rs
+   ```
+   This will create a file named `expanded_embassy_pico_neo_button.rs` in your project directory.
+
+**What does this do?**
+
+- `cargo expand` shows you the result of all macro expansions, attribute expansions, and code generation performed by the Rust compiler for your code. This is useful for understanding what your async code, macros, and attributes actually generate under the hood.
+- The output file (`expanded_embassy_pico_neo_button.rs`) is a single, self-contained Rust file that represents the code as the compiler sees it after all expansions. This can help with debugging, learning, or porting code to other environments.
+
+## Example: Main Embassy Task Future
+
+Below is the main async task for this project, as seen in the expanded code:
+
+```rust
+#[doc(hidden)]
+async fn ____embassy_main_task(_spawner: Spawner) {
+    let p = init(Default::default());
+    let (mut ws, mut led, mut button) = config::setup(p).await;
+    loop {
+        ws2812::run_cycle(&mut ws, &mut led, &mut button).await;
+    }
+}
+```
+
+**Explanation:**
+- This function is marked `async`, so calling it does not immediately run the code inside. Instead, it returns a `Future`—an object representing a computation that will complete later.
+- The Embassy executor takes this future and polls it to completion, driving the async logic.
+- The loop inside means the future never completes (it is an infinite task), which is typical for embedded main loops.
+- The `.await` calls inside the loop yield control back to the executor until the awaited operation (like button press/release) is ready, allowing other tasks to run efficiently.
+
+This is how async/await and the Embassy executor work together to provide efficient, non-blocking concurrency on embedded devices.
+
+**How does the async main task get executed?**
+
+When the macro expands, the following happens under the hood:
+
+- An `Executor` instance is created. The code ensures this executor has a `'static` lifetime so it can safely run forever on embedded hardware.
+- The `run` method is called on the executor, and a `Spawner` is passed in. The `Spawner` is used to spawn tasks (futures) onto the executor.
+- Executors internally wrap a queue which holds our futures. These futures are stored in a structure called `TaskStorage`, which contains:
+  - A `TaskHeader` (metadata for the task)
+  - The actual future, wrapped in a custom type called `UninitCell`
+  - A `TaskRef`, which is just a reference to the `TaskStorage` where the future has been type-erased
+- The job of the executor is to dequeue futures from its run-queue and call `poll` on them, driving them forward until they complete (or, in the case of an infinite loop, never complete).
+
+This mechanism is what allows async/await code to run efficiently and concurrently on embedded devices, with the executor managing all the scheduling and polling of tasks behind the scenes.
+
+## Example: Embassy Runtime Entry Point (Trampoline and Executor)
+
+Below is the entry point code generated for the Embassy async runtime:
+
+```rust
+#[doc(hidden)]
+#[export_name = "main"]
+pub unsafe extern "C" fn __cortex_m_rt_main_trampoline() {
+    #[allow(static_mut_refs)] __cortex_m_rt_main()
+}
+fn __cortex_m_rt_main() -> ! {
+    unsafe fn __make_static<T>(t: &mut T) -> &'static mut T {
+        ::core::mem::transmute(t)
+    }
+    let mut executor = ::embassy_executor::Executor::new();
+    let executor = unsafe { __make_static(&mut executor) };
+    executor
+        .run(|spawner| {
+            spawner.must_spawn(__embassy_main(spawner));
+        })
+}
+```
+
+**Explanation:**
+
+- The `#[export_name = "main"]` attribute ensures this function is used as the program's entry point, as required by the Cortex-M runtime.
+- `__cortex_m_rt_main_trampoline` is a small wrapper ("trampoline") that safely calls the real main function. It is marked `unsafe` and `extern "C"` to match the expected ABI for embedded startup code.
+- The trampoline calls `__cortex_m_rt_main()`, which contains the actual application logic.
+- Inside `__cortex_m_rt_main`:
+  - `__make_static` transmutes a local variable's reference to `'static` so it can live for the entire program (safe here because the function never returns).
+  - An `Executor` is created and made static. This executor is responsible for running async tasks.
+  - The executor's `run` method is called, passing a closure that receives a `Spawner`.
+  - The closure uses `spawner.must_spawn(__embassy_main(spawner))` to start the main async task.
+- The executor manages a queue of tasks (futures), polling them as needed to drive the async runtime.
+
+This pattern is typical for async embedded Rust, where the entry point must match the runtime's requirements and set up the async executor to run forever.
+
 ## Usage
 - Press the button: Both the onboard LED and the WS2812 will light up
 - Release the button: Both LEDs will turn off
