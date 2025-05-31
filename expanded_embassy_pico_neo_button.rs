@@ -65,7 +65,7 @@ mod config {
         (ws, led, button)
     }
 }
-mod ws2812 {
+mod run_cycle {
     //! # Button-to-WS2812 + LED Controller
     //!
     //! This module waits for button press/release and toggles LED + Neopixel.
@@ -104,7 +104,7 @@ async fn ____embassy_main_task(_spawner: Spawner) {
     let p = init(Default::default());
     let (mut ws, mut led, mut button) = config::setup(p).await;
     loop {
-        ws2812::run_cycle(&mut ws, &mut led, &mut button).await;
+        run_cycle::run_cycle(&mut ws, &mut led, &mut button).await;
     }
 }
 fn __embassy_main(_spawner: Spawner) -> ::embassy_executor::SpawnToken<impl Sized> {
