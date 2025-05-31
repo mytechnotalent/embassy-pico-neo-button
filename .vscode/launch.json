@@ -13,7 +13,7 @@
             "coreConfigs": [
                 {
                     //!MODIFY
-                    "programBinary": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/wifi_blinky",
+                    "programBinary": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/embassy-pico-neo-button",
                 }
             ]
         }
