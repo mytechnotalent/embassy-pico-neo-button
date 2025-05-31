@@ -1,0 +1,56 @@
+[package]
+edition = "2024"
+name = "embassy-pico-neo-button"
+version = "0.1.0"
+authors = ["Kevin Thomas <kevin@mytechnotalent.com>"]
+resolver = "2"
+
+[[bin]]
+name = "embassy-pico-neo-button"
+test = false
+bench = false
+
+[dependencies]
+defmt = "1.0.1"
+defmt-rtt = "1.0.0"
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+
+embedded-hal = "1.0.0"
+embedded-hal-async = "1.0.0"
+embedded-io = "0.6.1"
+embedded-io-async = "0.6.1"
+embedded-storage = "0.3.1"
+
+cortex-m-rt = "0.7.3"
+
+smart-leds = "0.4.0"
+
+embassy-executor = { version = "0.7", features = [
+    "task-arena-size-1024",
+    "arch-cortex-m",
+    "executor-thread",
+    "defmt",
+    "executor-interrupt",
+] }
+embassy-sync = { version = "0.7.0" }
+embassy-time = { version = "0.4", features = [
+    "defmt",
+    "defmt-timestamp-uptime",
+] }
+cortex-m = { version = "0.7.6" }
+embassy-rp = { version = "0.4", features = [
+    "defmt",
+    "unstable-pac",
+    "time-driver",
+    "critical-section-impl",
+    "rp2040",
+] }
+[profile.release]
+debug = 2
+lto = true
+opt-level = 'z'
+
+[profile.dev]
+debug = 2
+lto = true
+opt-level = "z"
