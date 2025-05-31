@@ -1,4 +1,4 @@
-//! # Button-to-WS2812 + LED Controller
+//! Main Loop functionality for the Raspberry Pi Pico.
 //!
 //! This module waits for button press/release and toggles LED + Neopixel.
 
