@@ -1,12 +1,18 @@
-![image](https://github.com/mytechnotalent/automatrix/blob/main/Automatrix.png?raw=true)
+![image](https://github.com/mytechnotalent/embassy-pico-neo-button/blob/main/embassy-pico-neo-button.jpg?raw=true)
 
-# Embassy Pico Neo
+# Embassy Pico Neo Button
 
 This project demonstrates how to use the Raspberry Pi Pico (RP2040) microcontroller with Embassy (an async embedded framework) to control a WS2812 (Neopixel) LED and an onboard LED in response to a button press. The project is written in Rust and is designed for async execution on embedded hardware.
 
+<br>
+
+## FREE Reverse Engineering Self-Study Course [HERE](https://github.com/mytechnotalent/Reverse-Engineering-Tutorial)
+
+<br>
+
 ## Wiring
-![image](https://github.com/mytechnotalent/automatrix/blob/main/Automatrix.png?raw=true)
-![image](https://github.com/mytechnotalent/automatrix/blob/main/Automatrix.png?raw=true)
+![image](https://github.com/mytechnotalent/embassy-pico-neo-button/blob/main/diagrams/Debug-Probe-Wiring.png?raw=true)
+![image](https://github.com/mytechnotalent/embassy-pico-neo-button/blob/main/diagrams/Embassy-Pico-Neo-Button.png?raw=true)
 
 ## Features
 - Lights up both the onboard LED and a WS2812 (Neopixel) when a button is pressed
@@ -76,7 +82,7 @@ cargo build --release --target=thumbv6m-none-eabi
 The main async loop repeatedly calls `ws2812::run_cycle`, which handles button state and LED updates. Hardware setup is abstracted in `config.rs` for clarity and reusability.
 
 ## License
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the Apache License. See [LICENSE](https://www.apache.org/licenses/LICENSE-2.0) for details.
 
 ## Acknowledgments
 - [Pico](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html)
