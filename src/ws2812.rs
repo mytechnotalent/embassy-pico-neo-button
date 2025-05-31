@@ -35,15 +35,3 @@ pub async fn run_cycle(
 
     Timer::after_millis(10).await;
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use embassy_rp::gpio::Level;
-
-    #[test]
-    fn dummy_test_run_cycle() {
-        // Dummy logic test
-        assert_eq!(Level::Low == Level::Low, true);
-    }
-}
