@@ -44,10 +44,37 @@ To debug your Raspberry Pi Pico project in VS Code, install the [probe-rs Debugg
 
 For more details, see the [probe-rs Debugger documentation](https://probe.rs/docs/tools/vscode/).
 
+## Reverse Engineering and Debugging with VS Code
+
+This project includes a `.vscode/launch.json` configuration for [probe-rs](https://probe.rs/) debugging. This allows you to reverse engineer and deeply understand the async runtime and your embedded application:
+
+- **Set Breakpoints Anywhere:** You can set breakpoints in your Rust source code, including inside async functions, macros, and even in the expanded code (see `expanded_embassy_pico_neo_button.rs`).
+- **Step Through Execution:** Use the VS Code debugger to step through the initialization, executor setup, and your async tasks. This is invaluable for learning how async/await and Embassy's executor work under the hood.
+- **Inspect State:** Pause execution and inspect variables, the executor's state, and the contents of the task queue. This helps you see how futures are managed and polled.
+- **Reverse Engineering:** By combining the expanded code with live debugging, you can trace exactly how high-level Rust async code is transformed and executed on the device. This is a powerful way to learn embedded async Rust and the Embassy framework.
+
+**How the process and flow works (with expanded code):**
+
+1. **Startup:** The Cortex-M runtime calls the exported `main` symbol, which is the `__cortex_m_rt_main_trampoline` function. This trampoline safely calls the real main logic in `__cortex_m_rt_main`.
+2. **Executor Setup:** In `__cortex_m_rt_main`, an `Executor` is created and made static. This executor is the async runtime for your device.
+3. **Spawning the Main Task:** The executor's `run` method is called, passing a closure that receives a `Spawner`. The closure uses `spawner.must_spawn(__embassy_main(spawner))` to start the main async task.
+4. **Task Storage:** The executor manages a queue of tasks (futures), each stored in a `TaskStorage` structure. This includes metadata, the actual future, and a reference for type-erased polling.
+5. **Polling Futures:** The executor dequeues tasks and calls `poll` on their futures. When a future awaits something (like a button press), it yields control, and the executor can poll other tasks.
+6. **Debugging:** With the debugger, you can break at any of these steps—startup, executor creation, task spawning, or inside your async logic. You can see the expanded code to understand exactly what is happening at each step, and inspect the executor's queue and the state of your tasks.
+
+**How to use:**
+1. Open the project in VS Code.
+2. Go to the Run and Debug panel.
+3. Select the `probe_rs Executable Test` configuration.
+4. Set breakpoints as desired in your code (including in expanded code for deep inspection).
+5. Start debugging to flash and connect to your Pico, then step through the process.
+
+This workflow is ideal for both development and reverse engineering, letting you see the real execution flow and internal state of your async embedded application, and how the high-level Rust code is transformed and executed by the Embassy runtime.
+
 ## Project Structure
 - `src/main.rs`: Async entry point, main loop, and high-level logic
 - `src/config.rs`: Hardware setup and pin configuration
-- `src/ws2812.rs`: WS2812 (Neopixel) control logic
+- `src/run_cycle.rs`: WS2812 (Neopixel) and LED control main loop logic
 - `Cargo.toml`: Project dependencies and metadata
 - `memory.x`: Linker script for RP2040
 - `build.rs`: Build script (if needed)
@@ -113,7 +140,7 @@ async fn ____embassy_main_task(_spawner: Spawner) {
     let p = init(Default::default());
     let (mut ws, mut led, mut button) = config::setup(p).await;
     loop {
-        ws2812::run_cycle(&mut ws, &mut led, &mut button).await;
+        run_cycle::run_cycle(&mut ws, &mut led, &mut button).await;
     }
 }
 ```
@@ -182,7 +209,7 @@ This pattern is typical for async embedded Rust, where the entry point must matc
 - Release the button: Both LEDs will turn off
 
 ## Code Overview
-The main async loop repeatedly calls `ws2812::run_cycle`, which handles button state and LED updates. Hardware setup is abstracted in `config.rs` for clarity and reusability.
+The main async loop repeatedly calls `run_cycle::run_cycle`, which handles button state and LED updates. Hardware setup is abstracted in `config.rs` for clarity and reusability.
 
 ## License
 This project is licensed under the Apache License. See [LICENSE](https://www.apache.org/licenses/LICENSE-2.0) for details.

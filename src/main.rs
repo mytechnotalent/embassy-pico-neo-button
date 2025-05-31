@@ -11,7 +11,7 @@ use embassy_rp::init;
 use {defmt_rtt as _, panic_probe as _};
 
 mod config;
-mod ws2812;
+mod run_cycle;
 
 /// RP2040 async entry-point.
 #[embassy_executor::main]
@@ -20,6 +20,6 @@ async fn main(_spawner: Spawner) {
     let (mut ws, mut led, mut button) = config::setup(p).await;
 
     loop {
-        ws2812::run_cycle(&mut ws, &mut led, &mut button).await;
+        run_cycle::run_cycle(&mut ws, &mut led, &mut button).await;
     }
 }
