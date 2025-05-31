@@ -65,19 +65,19 @@ For more details, see the [probe-rs Debugger documentation](https://probe.rs/doc
 ### 2. Clone the Repository
 ```sh
 git clone <your-repo-url>
-cd embassy-pico-neobutton
+cd embassy-pico-neo-button
 ```
 
 ### 3. Build the Project
 ```sh
-cargo build --release --target=thumbv6m-none-eabi
+cargo build
 ```
 
 ### 4. Flash to the Pico
 - Use your preferred tool (e.g., probe-rs, elf2uf2, or drag-and-drop UF2)
 - Example with probe-rs:
   ```sh
-  cargo run --release --target=thumbv6m-none-eabi
+  cargo run
   ```
 
 ### 5. Connect Hardware
