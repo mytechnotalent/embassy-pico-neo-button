@@ -32,6 +32,17 @@ This project demonstrates how to use the Raspberry Pi Pico (RP2040) microcontrol
 - [defmt](https://github.com/knurling-rs/defmt) for logging
 - [panic-probe](https://github.com/knurling-rs/panic-probe) for panic handling
 - [smart-leds](https://github.com/smart-leds-rs/smart-leds) for LED control
+- [probe-rs](https://probe.rs/) for flashing and debugging (see below for VS Code integration)
+
+## VS Code Debugging with probe-rs
+To debug your Raspberry Pi Pico project in VS Code, install the [probe-rs Debugger extension](https://marketplace.visualstudio.com/items?itemName=probe-rs.probe-rs-debugger):
+
+1. Open the Extensions view in VS Code (Ctrl+Shift+X or Cmd+Shift+X).
+2. Search for `probe-rs Debugger` and install it.
+3. Connect your debug probe to the Pico and your computer.
+4. Use the Run and Debug panel in VS Code to start a debug session.
+
+For more details, see the [probe-rs Debugger documentation](https://probe.rs/docs/tools/vscode/).
 
 ## Project Structure
 - `src/main.rs`: Async entry point, main loop, and high-level logic
@@ -91,6 +102,7 @@ This project is licensed under the Apache License. See [LICENSE](https://www.apa
 - [smart-leds](https://github.com/smart-leds-rs/smart-leds)
 - [defmt](https://github.com/knurling-rs/defmt)
 - [panic-probe](https://github.com/knurling-rs/panic-probe)
+- [probe-rs](https://probe.rs/)
 
 ---
 
