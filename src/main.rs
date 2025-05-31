@@ -13,15 +13,11 @@ use {defmt_rtt as _, panic_probe as _};
 mod config;
 mod ws2812;
 
-use smart_leds::RGB8;
-
 /// RP2040 async entry-point.
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = init(Default::default());
-    let (mut ws, mut led, mut button) = config::setup(p);
-
-    ws.write(&[RGB8::default()]).await; // turn off initially
+    let (mut ws, mut led, mut button) = config::setup(p).await;
 
     loop {
         ws2812::run_cycle(&mut ws, &mut led, &mut button).await;
