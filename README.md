@@ -2,7 +2,7 @@
 
 # Rust Embassy Pico Project
 
-This project demonstrates how to use the Raspberry Pi Pico (RP2040) microcontroller with Embassy (an async embedded framework) to control a WS2812 (Neopixel) LED and an onboard LED in response to a button press. The project is written in Rust and is designed for async execution on embedded hardware.
+Raspberry Pi Pico w/ Rust and Embassy simple project example.
 
 <br>
 
