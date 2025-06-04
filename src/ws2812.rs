@@ -1,118 +1,139 @@
-//! # Hardware Configuration
+//! # WS2812 LED Control Module
 //!
-//! This module initializes:
-//! - WS2812 PIO driver on GPIO17,
-//! - Onboard LED on GPIO25,
-//! - Button input with pull-up on GPIO16,
-//! and provides helpers to turn on/off individual or all LEDs with intensity.
+//! ## Features
+//! - WS2812 LED driver initialization on configurable GPIO.
+//! - Onboard LED control on configurable GPIO.
+//! - Control individual LED colors and brightness.
+//! - Turn on/off individual or all LEDs.
 
-use embassy_rp::gpio::{Input, Level, Output, Pull};
-use embassy_rp::pio::{InterruptHandler, Pio};
+use embassy_rp::bind_interrupts;
+use embassy_rp::dma::Channel;
+use embassy_rp::gpio::{Level, Output, Pin};
+use embassy_rp::peripherals::PIO0;
+use embassy_rp::pio::{InterruptHandler, Pio, PioPin};
 use embassy_rp::pio_programs::ws2812::{PioWs2812, PioWs2812Program};
-use embassy_rp::{bind_interrupts, peripherals::PIO0};
 use smart_leds::RGB8;
 
 // Bind PIO0 IRQ for WS2812 DMA interrupts
 bind_interrupts!(struct Irqs { PIO0_IRQ_0 => InterruptHandler<PIO0>; });
 
-/// Configures peripherals: WS2812 (64 LEDs), onboard LED, and button.
+/// Initializes WS2812 PIO driver and onboard LED.
 ///
-/// # Parameters
-/// - `p`: Embassy‐RP2040 peripherals instance.
+/// # Type Parameters
+/// * `N` - Number of WS2812 LEDs.
+///
+/// # Arguments
+/// * `pio` - PIO0 peripheral instance.
+/// * `dma_ch0` - DMA channel (must implement `Channel`).
+/// * `ws_pin` - Pin to drive WS2812 data (must implement `PioPin`).
+/// * `led_pin` - Pin for onboard LED (must implement `Pin`).
 ///
 /// # Returns
-/// - `PioWs2812<'static, PIO0, 0, 64>`: WS2812 driver (configured for 64 LEDs).
-/// - `Output<'static>`: Onboard LED (GPIO25).
-/// - `Input<'static>`: Button input with pull‐up (GPIO16).
+/// * Tuple:
+///     - `PioWs2812<'static, PIO0, 0, N>`: WS2812 driver configured for `N` LEDs.
+///     - `Output<'static>`: Onboard LED initialized.
 ///
-/// Initializes the PIO state machine, DMA channel, and ensures all 64 LEDs start off.
-pub async fn init(
-    p: embassy_rp::Peripherals,
-) -> (
-    PioWs2812<'static, PIO0, 0, 64>,
-    Output<'static>,
-    Input<'static>,
-) {
+/// # Behavior
+/// Initializes PIO, DMA, and sets all `N` LEDs to off.
+pub async fn init<const N: usize>(
+    pio: PIO0,
+    dma_ch0: impl Channel,  // DMA channel 0
+    ws_pin: impl PioPin,    // e.g. PIN_17
+    led_pin: impl Pin,      // e.g. PIN_25
+) -> (PioWs2812<'static, PIO0, 0, N>, Output<'static>) {
     let Pio {
         mut common, sm0, ..
-    } = Pio::new(p.PIO0, Irqs);
+    } = Pio::new(pio, Irqs);
 
     let prog = PioWs2812Program::new(&mut common);
-    let mut ws = PioWs2812::new(&mut common, sm0, p.DMA_CH0, p.PIN_17, &prog);
+    let mut ws = PioWs2812::new(&mut common, sm0, dma_ch0, ws_pin, &prog);
 
-    let led = Output::new(p.PIN_25, Level::Low);
-    let button = Input::new(p.PIN_16, Pull::Up);
+    let led = Output::new(led_pin, Level::Low);
 
-    // Turn off all 64 LEDs initially
-    let off = [RGB8::default(); 64];
+    let off = [RGB8::default(); N];
     ws.write(&off).await;
 
-    (ws, led, button)
+    (ws, led)
 }
 
-/// Turns on a specific LED at a given index with a specified color and intensity.
+/// Turns on a specific LED with given color and intensity.
 ///
-/// # Parameters
-/// - `ws`: Mutable reference to the WS2812 driver instance.
-/// - `target_index`: Index of the LED to turn on (0-based, must be < 64).
-/// - `color`: Desired base color (RGB8).
-/// - `intensity`: Brightness level (0–255).
+/// # Arguments
+/// * `ws` - Mutable reference to the WS2812 driver.
+/// * `target_index` - Index of the LED to turn on (0-based, must be < `N`).
+/// * `color` - Desired RGB8 color.
+/// * `intensity` - Brightness level (0–255).
 ///
-/// Fills a 64‐element array with black, then sets `leds[target_index]` to
-/// `color` scaled by `intensity`, and writes the entire buffer to the strip.
-pub async fn turn_on_led(
-    ws: &mut PioWs2812<'_, PIO0, 0, 64>,
+/// # Behavior
+/// Turns off all LEDs except the specified one, which is set to the given color and intensity.
+#[allow(dead_code)]
+pub async fn turn_on_led<const N: usize>(
+    ws: &mut PioWs2812<'_, PIO0, 0, N>,
     target_index: usize,
     color: RGB8,
     intensity: u8,
 ) {
-    if target_index >= 64 {
+    if target_index >= N {
         return;
     }
-    let mut leds = [RGB8::default(); 64];
+
+    let mut leds = [RGB8::default(); N];
+
     leds[target_index] = scale_color(color, intensity);
     ws.write(&leds).await;
 }
 
-/// Turns off all 64 LEDs in the strip.
+/// Turns off all LEDs.
 ///
-/// # Parameters
-/// - `ws`: Mutable reference to the WS2812 driver instance.
+/// # Arguments
+/// * `ws` - Mutable reference to the WS2812 driver.
 ///
-/// Writes an all‐black (zero) buffer of length 64 to turn every LED off.
-pub async fn turn_off_all_leds(ws: &mut PioWs2812<'_, PIO0, 0, 64>) {
-    let leds = [RGB8::default(); 64];
+/// # Behavior
+/// Writes an array of black to turn all LEDs off.
+#[allow(dead_code)]
+pub async fn turn_off_all_leds<const N: usize>(ws: &mut PioWs2812<'_, PIO0, 0, N>) {
+    let leds = [RGB8::default(); N];
+    
     ws.write(&leds).await;
 }
 
-/// Turns off a single LED while preserving the current state of the other LEDs.
+/// Turns off a single LED while preserving other LEDs' states.
 ///
-/// # Parameters
-/// - `ws`: Mutable reference to the WS2812 driver instance.
-/// - `current_state`: Mutable reference to the current RGB8 array of length 64.
-/// - `led_index`: Index of the LED to turn off (0-based).
+/// # Arguments
+/// * `ws` - Mutable reference to the WS2812 driver.
+/// * `current_state` - Mutable reference to the current LED array.
+/// * `led_index` - Index of the LED to turn off.
 ///
-/// Sets `current_state[led_index]` to black and writes the updated state back.
-pub async fn turn_off_single_led(
-    ws: &mut PioWs2812<'_, PIO0, 0, 64>,
-    current_state: &mut [RGB8; 64],
+/// # Behavior
+/// Sets the specified LED to black without affecting others.
+#[allow(dead_code)]
+pub async fn turn_off_single_led<const N: usize>(
+    ws: &mut PioWs2812<'_, PIO0, 0, N>,
+    current_state: &mut [RGB8; N],
     led_index: usize,
 ) {
-    if led_index < 64 {
+    if led_index < N {
         current_state[led_index] = RGB8::default();
     }
     ws.write(current_state).await;
 }
 
-/// Scales an RGB8 color by a given intensity (0–255).
+/// Scales an RGB8 color by intensity.
 ///
-/// # Parameters
-/// - `color`: The original RGB8 color.
-/// - `intensity`: Brightness scalar (0 = off, 255 = full brightness).
+/// # Arguments
+/// * `color` - The original RGB8 color.
+/// * `intensity` - Brightness scalar (0–255).
 ///
 /// # Returns
-/// - A new `RGB8` where each channel is multiplied by `intensity/255`.
-fn scale_color(color: RGB8, intensity: u8) -> RGB8 {
+/// * Scaled `RGB8` color with adjusted brightness.
+///
+/// # Example
+/// ```
+/// let red = RGB8 { r: 255, g: 0, b: 0 };
+/// let dim_red = scale_color(red, 128); // 50% brightness
+/// ```
+#[allow(dead_code)]
+pub fn scale_color(color: RGB8, intensity: u8) -> RGB8 {
     RGB8 {
         r: ((color.r as u16 * intensity as u16) / 255) as u8,
         g: ((color.g as u16 * intensity as u16) / 255) as u8,
