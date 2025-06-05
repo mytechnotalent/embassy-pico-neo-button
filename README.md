@@ -73,7 +73,7 @@ This workflow is ideal for both development and reverse engineering, letting you
 
 ## Project Structure
 - `src/main.rs`: Async entry point, main loop, and high-level logic
-- `src/config.rs`: Hardware setup and pin configuration
+- `src/ws2812.rs`: Hardware setup and pin configuration
 - `src/run_cycle.rs`: WS2812 (Neopixel) and LED control main loop logic
 - `Cargo.toml`: Project dependencies and metadata
 - `memory.x`: Linker script for RP2040
@@ -121,14 +121,14 @@ To view the fully expanded Rust source code (with all macros and attributes expa
    ```
 2. Run the following command to generate the expanded source for the main binary:
    ```sh
-   cargo expand --bin embassy-pico-neo-button > expanded_embassy_pico_neo_button.rs
+   cargo expand --bin rust_embassy_pico_project > expanded_rust_embassy_pico_project.rs
    ```
    This will create a file named `expanded_embassy_pico_neo_button.rs` in your project directory.
 
 **What does this do?**
 
 - `cargo expand` shows you the result of all macro expansions, attribute expansions, and code generation performed by the Rust compiler for your code. This is useful for understanding what your async code, macros, and attributes actually generate under the hood.
-- The output file (`expanded_embassy_pico_neo_button.rs`) is a single, self-contained Rust file that represents the code as the compiler sees it after all expansions. This can help with debugging, learning, or porting code to other environments.
+- The output file (`expanded_rust_embassy_pico_project.rs`) is a single, self-contained Rust file that represents the code as the compiler sees it after all expansions. This can help with debugging, learning, or porting code to other environments.
 
 ## Example: Main Embassy Task Future
 
