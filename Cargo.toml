@@ -8,11 +8,6 @@ name = "rust_embassy_pico_project"
 test = false
 bench = false
 
-[lib]
-name = "rust_embassy_pico_project"
-test = false
-bench = false
-
 [dependencies]
 embassy-executor = { version = "0.7", features = [
     "task-arena-size-1024", "arch-cortex-m", "executor-thread", "defmt", "executor-interrupt"
