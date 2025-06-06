@@ -119,43 +119,111 @@ A simple embedded Rust project running on the Raspberry Pi Pico (RP2040), built 
 
 ---
 
-### Deep Dive: `run_cycle` Async State Machine & Code Layout
+### Deep Dive: From Reset to `run_cycle` Poll
 
-When you declare:
-```rust
-pub async fn run_cycle(led: &mut Led, button: &mut Input<'_>) { /* your logic */ }
-```
-Rust lowers this into two distinct functions:
 
-1. **Future Constructor** at `0x10001904` – builds and returns the state machine struct:
 
+
+
+Below is **every** assembler instruction captured, with mangled ↔ demangled names and addresses.
+
+### 1. Reset Vector (`Reset` @ 0x100001c0)
 ```asm
-0x10001904 <+0>:  push    {r7, lr}
-0x10001906 <+2>:  add     r7, sp, #0
-0x10001908 <+4>:  sub     sp, #12
-...                   # store arguments into the Future struct
-0x10001918 <+20>: movs    r0, #0       ;; initial state = 0
-0x1000191a <+22>: strb    r0, [r1,#16] ;; write state tag field
-0x1000191c <+24>: add     sp, #12
-0x1000191e <+26>: pop     {r7, pc}
+    => 0x100001c0 <+0>:   bl      0x10007a94 <__pre_init>
+       0x100001c4 <+4>:   ldr     r0, [pc, #32]   @ (0x100001e8)
+       0x100001c6 <+6>:   ldr     r1, [pc, #36]   @ (0x100001ec)
+       0x100001c8 <+8>:   movs    r2, #0
+       0x100001ca <+10>:  cmp     r1, r0
+       0x100001cc <+12>:  beq.n   0x100001d2 <Reset+18>
+       0x100001ce <+14>:  stmia   r0!, {r2}
+       0x100001d0 <+16>:  b.n     0x100001ca <Reset+10>
+       0x100001d2 <+18>:  ldr     r0, [pc, #28]   @ (0x100001f0)
+       0x100001d4 <+20>:  ldr     r1, [pc, #28]   @ (0x100001f4)
+       0x100001d6 <+22>:  ldr     r2, [pc, #32]   @ (0x100001f8)
+       0x100001d8 <+24>:  cmp     r1, r0
+       0x100001da <+26>:  beq.n   0x100001e2 <Reset+34>
+       0x100001dc <+28>:  ldmia   r2!, {r3}
+       0x100001de <+30>:  stmia   r0!, {r3}
+       0x100001e0 <+32>:  b.n     0x100001d8 <Reset+24>
+       => 0x100001e2 <+34>:  bl      0x1000066c <main>
+       0x100001e6 <+38>:  udf     #0
 ```
 
-This tiny function allocates your `RunCycleFuture`, stores the `led` and `button` references into its fields, sets its `.state` to `0`, and returns immediately back to the executor.
-
-2. **Poll Implementation** (closure) at `0x100006a0` – this is where your high-level Rust logic lives:
-
+### 2. `main` Trampoline (@ 0x1000066c)
 ```asm
-0x100006a0 <+0>:   push    {r4, r6, r7, lr}
-...                   # prologue, stack frame setup
-0x100006ec <+76>:  ldr     r0, [r0,#12]  ;; load Future.state
-0x100006ee <+78>:  bl      0x100005d6    ;; Input::is_low()
-0x100006f2 <+82>:  cmp     r0, #0
-0x100006f4 <+84>:  bne.n   0x10000740    ;; if button.is_low() -> branch
-...                   # await wait_for_high
-0x100007cc <+300>: bl      0x1000020a    ;; Led::on()
-...                   # await wait_for_low, then Led::off()
-0x10000834 <+404>: bl      0x100018de    ;; Timer::after_millis()
-0x10000880 <+480>: pop     {r4, r6, r7, pc}
+    => 0x1000066c <+0>:   push    {r7, lr}
+       0x1000066e <+2>:   add     r7, sp, #0
+       0x10000670 <+4>:   bl      0x10000674 <_ZN25rust_embassy_pico_project18__cortex_m_rt_main17h…>
+```
+
+### 3. `__cortex_m_rt_main` (@ 0x10000674)
+```asm
+    => 0x10000674 <+0>:   push    {r7, lr}
+       0x10000676 <+2>:   add     r7, sp, #0
+       0x10000678 <+4>:   sub     sp, #16
+       0x1000067a <+6>:   bl      0x10009a20 <_ZN16embassy_executor4arch6thread8Executor3new17h…>
+       0x1000067e <+10>:  str     r0, [sp, #4]
+       0x10000680 <+12>:  str     r1, [sp, #8]
+       0x10000682 <+14>:  add     r0, sp, #4
+       0x10000684 <+16>:  bl      0x10000e24 <_ZN25rust_embassy_pico_project18__cortex_m_rt_main13__make_static17h…>
+       0x10000688 <+20>:  str     r0, [sp, #12]
+       0x1000068a <+22>:  bl      0x1000163c <_ZN16embassy_executor4arch6thread8Executor3run17h…>
+```
+
+### 4. `Executor::new` → `raw::Executor::new` → `SyncExecutor::new`
+
+ - **Executor::new** (`arch::cortex_m.rs:77`): calls `raw::Executor::new(THREAD_PENDER)`
+ - **raw::Executor::new** (mod.rs:495): creates `SyncExecutor::new`
+ - **SyncExecutor::new** (mod.rs:383): `run_queue: RunQueue::new()`
+ - **RunQueue::new** (run_queue_critical_section.rs:35): `head: Mutex::new(Cell::new(None))`, etc.
+
+### 5. `Executor::run` (@ 0x1000163c)
+```asm
+    => 0x1000163c <+0>:   push    {r7, lr}
+       0x1000163e <+2>:   add     r7, sp, #0
+       0x10001640 <+4>:   sub     sp, #16
+       0x10001642 <+6>:   str     r0, [sp, #4]
+       0x10001644 <+8>:   str     r0, [sp, #8]
+       0x10001646 <+10>: bl      0x10009dba <raw::Executor::spawner>
+       0x1000164a <+14>: bl      0x10000e30 <__cortex_m_rt_main::{closure}>
+    => 0x10001650 <+20>: ldr     r0, [sp, #4]
+       0x10001652 <+22>: bl      0x10009daa <raw::Executor::poll>
+       0x10001656 <+26>: wfe
+       0x10001658 <+28>: b.n     0x10001650
+```
+
+### 6. `run_cycle` Future Constructor (@ 0x10001904)
+```asm
+    => 0x10001904 <+0>:   push    {r7, lr}
+       0x10001906 <+2>:   add     r7, sp, #0
+       0x10001908 <+4>:   sub     sp, #12
+       0x1000190a <+6>:   str     r1, [sp, #0]    # button ptr
+       0x1000190c <+8>:   mov     r1, r0
+       0x1000190e <+10>:  ldr     r0, [sp, #0]    # button
+       0x10001910 <+12>:  str     r0, [sp, #4]    # store in struct
+       0x10001912 <+14>:  str     r2, [sp, #8]    # store led ptr
+       0x10001914 <+16>:  str     r0, [r1, #0]
+       0x10001916 <+18>:  str     r2, [r1, #4]
+       0x10001918 <+20>:  movs    r0, #0          # initial state=0
+       0x1000191a <+22>:  strb    r0, [r1, #16]   # .state=0
+       0x1000191c <+24>:  add     sp, #12
+       0x1000191e <+26>:  pop     {r7, pc}
+```
+
+### 7. `run_cycle` Poll State Machine (@ 0x100006a0)
+```asm
+    => 0x100006a0 <+0>:   push    {r4, r6, r7, lr}
+       0x100006a2 <+2>:   add     r7, sp, #8
+       0x100006a4 <+4>:   sub     sp, #192        # stack for state
+       0x100006aa <+10>:  str     r1, [sp, #20]   # button ptr save
+       0x100006ac <+12>:  ldr     r0, [sp, #28]   # &self
+       0x100006ae <+14>:  ldrb    r0, [r0, #16]    # load .state
+       0x100006b0 <+16>:  str     r0, [sp, #24]
+       0x100006b2 <+18>:  ldr     r0, [sp, #24]
+       0x100006b4 <+20>:  lsls    r1, r0, #2
+       0x100006b6 <+22>:  add     r0, pc, #4        # jump table base
+       0x100006b8 <+24>:  ldr     r0, [r0, r1]
+       0x100006ba <+26>:  mov     pc, r0            # dispatch to state
 ```
 
 Each `bne` or `b.n` jump corresponds to one of the `await` suspension points:
