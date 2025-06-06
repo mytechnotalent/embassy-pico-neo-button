@@ -197,15 +197,15 @@ Below is **every** assembler instruction captured, with mangled ↔ demangled na
        0x10001904 <+0>:   push    {r7, lr}
        0x10001906 <+2>:   add     r7, sp, #0
        0x10001908 <+4>:   sub     sp, #12
-       0x1000190a <+6>:   str     r1, [sp, #0]    # button ptr
+       0x1000190a <+6>:   str     r1, [sp, #0]     # button ptr
        0x1000190c <+8>:   mov     r1, r0
-       0x1000190e <+10>:  ldr     r0, [sp, #0]    # button
-       0x10001910 <+12>:  str     r0, [sp, #4]    # store in struct
-       0x10001912 <+14>:  str     r2, [sp, #8]    # store led ptr
+       0x1000190e <+10>:  ldr     r0, [sp, #0]     # button
+       0x10001910 <+12>:  str     r0, [sp, #4]     # store in struct
+       0x10001912 <+14>:  str     r2, [sp, #8]     # store led ptr
        0x10001914 <+16>:  str     r0, [r1, #0]
        0x10001916 <+18>:  str     r2, [r1, #4]
-       0x10001918 <+20>:  movs    r0, #0          # initial state=0
-       0x1000191a <+22>:  strb    r0, [r1, #16]   # .state=0
+       0x10001918 <+20>:  movs    r0, #0           # initial state=0
+       0x1000191a <+22>:  strb    r0, [r1, #16]    # .state=0
        0x1000191c <+24>:  add     sp, #12
        0x1000191e <+26>:  pop     {r7, pc}
 ```
@@ -214,16 +214,16 @@ Below is **every** assembler instruction captured, with mangled ↔ demangled na
 ```asm
        0x100006a0 <+0>:   push    {r4, r6, r7, lr}
        0x100006a2 <+2>:   add     r7, sp, #8
-       0x100006a4 <+4>:   sub     sp, #192        # stack for state
-       0x100006aa <+10>:  str     r1, [sp, #20]   # button ptr save
-       0x100006ac <+12>:  ldr     r0, [sp, #28]   # &self
+       0x100006a4 <+4>:   sub     sp, #192         # stack for state
+       0x100006aa <+10>:  str     r1, [sp, #20]    # button ptr save
+       0x100006ac <+12>:  ldr     r0, [sp, #28]    # &self
        0x100006ae <+14>:  ldrb    r0, [r0, #16]    # load .state
        0x100006b0 <+16>:  str     r0, [sp, #24]
        0x100006b2 <+18>:  ldr     r0, [sp, #24]
        0x100006b4 <+20>:  lsls    r1, r0, #2
-       0x100006b6 <+22>:  add     r0, pc, #4        # jump table base
+       0x100006b6 <+22>:  add     r0, pc, #4       # jump table base
        0x100006b8 <+24>:  ldr     r0, [r0, r1]
-       0x100006ba <+26>:  mov     pc, r0            # dispatch to state
+       0x100006ba <+26>:  mov     pc, r0           # dispatch to state
 ```
 
 Each `bne` or `b.n` jump corresponds to one of the `await` suspension points:
