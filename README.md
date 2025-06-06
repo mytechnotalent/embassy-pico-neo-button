@@ -119,6 +119,60 @@ A simple embedded Rust project running on the Raspberry Pi Pico (RP2040), built 
 
 ---
 
+### Deep Dive: `run_cycle` Async State Machine & Code Layout
+
+When you declare:
+```rust
+pub async fn run_cycle(led: &mut Led, button: &mut Input<'_>) { /* your logic */ }
+```
+Rust lowers this into two distinct functions:
+
+1. **Future Constructor** at `0x10001904` – builds and returns the state machine struct:
+
+```asm
+0x10001904 <+0>:  push    {r7, lr}
+0x10001906 <+2>:  add     r7, sp, #0
+0x10001908 <+4>:  sub     sp, #12
+...                   # store arguments into the Future struct
+0x10001918 <+20>: movs    r0, #0       ;; initial state = 0
+0x1000191a <+22>: strb    r0, [r1,#16] ;; write state tag field
+0x1000191c <+24>: add     sp, #12
+0x1000191e <+26>: pop     {r7, pc}
+```
+
+This tiny function allocates your `RunCycleFuture`, stores the `led` and `button` references into its fields, sets its `.state` to `0`, and returns immediately back to the executor.
+
+2. **Poll Implementation** (closure) at `0x100006a0` – this is where your high-level Rust logic lives:
+
+```asm
+0x100006a0 <+0>:   push    {r4, r6, r7, lr}
+...                   # prologue, stack frame setup
+0x100006ec <+76>:  ldr     r0, [r0,#12]  ;; load Future.state
+0x100006ee <+78>:  bl      0x100005d6    ;; Input::is_low()
+0x100006f2 <+82>:  cmp     r0, #0
+0x100006f4 <+84>:  bne.n   0x10000740    ;; if button.is_low() -> branch
+...                   # await wait_for_high
+0x100007cc <+300>: bl      0x1000020a    ;; Led::on()
+...                   # await wait_for_low, then Led::off()
+0x10000834 <+404>: bl      0x100018de    ;; Timer::after_millis()
+0x10000880 <+480>: pop     {r4, r6, r7, pc}
+```
+
+Each `bne` or `b.n` jump corresponds to one of the `await` suspension points:
+
+- `state = 0` → evaluate `button.is_low()` and possibly await `wait_for_high()`
+- `state = 1` → resumed after `wait_for_high().await`
+- `state = 2` → await `wait_for_low().await`
+- `state = 3` → execute `led.on()`
+- `state = 4` → await `wait_for_high().await`
+- `state = 5` → execute `led.off()`
+- `state = 6` → await `Timer::after_millis().await`
+- `state = DONE` → return `Poll::Ready` and exit
+
+By placing a breakpoint at the closure entry (`0x100006a0`), you dive directly into your button-press/LED logic, skipping the trivial constructor at `0x10001904`.
+
+---
+
 ## Building and Flashing
 
 Make sure you have:
