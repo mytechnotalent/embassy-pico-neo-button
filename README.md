@@ -129,7 +129,7 @@ Below is **every** assembler instruction captured, with mangled ↔ demangled na
 
 ### 1. Reset Vector (`Reset` @ 0x100001c0)
 ```asm
-    => 0x100001c0 <+0>:   bl      0x10007a94 <__pre_init>
+       0x100001c0 <+0>:   bl      0x10007a94 <__pre_init>
        0x100001c4 <+4>:   ldr     r0, [pc, #32]   @ (0x100001e8)
        0x100001c6 <+6>:   ldr     r1, [pc, #36]   @ (0x100001ec)
        0x100001c8 <+8>:   movs    r2, #0
@@ -145,20 +145,20 @@ Below is **every** assembler instruction captured, with mangled ↔ demangled na
        0x100001dc <+28>:  ldmia   r2!, {r3}
        0x100001de <+30>:  stmia   r0!, {r3}
        0x100001e0 <+32>:  b.n     0x100001d8 <Reset+24>
-       => 0x100001e2 <+34>:  bl      0x1000066c <main>
+       0x100001e2 <+34>:  bl      0x1000066c <main>
        0x100001e6 <+38>:  udf     #0
 ```
 
 ### 2. `main` Trampoline (@ 0x1000066c)
 ```asm
-    => 0x1000066c <+0>:   push    {r7, lr}
+       0x1000066c <+0>:   push    {r7, lr}
        0x1000066e <+2>:   add     r7, sp, #0
        0x10000670 <+4>:   bl      0x10000674 <_ZN25rust_embassy_pico_project18__cortex_m_rt_main17h…>
 ```
 
 ### 3. `__cortex_m_rt_main` (@ 0x10000674)
 ```asm
-    => 0x10000674 <+0>:   push    {r7, lr}
+       0x10000674 <+0>:   push    {r7, lr}
        0x10000676 <+2>:   add     r7, sp, #0
        0x10000678 <+4>:   sub     sp, #16
        0x1000067a <+6>:   bl      0x10009a20 <_ZN16embassy_executor4arch6thread8Executor3new17h…>
@@ -179,14 +179,14 @@ Below is **every** assembler instruction captured, with mangled ↔ demangled na
 
 ### 5. `Executor::run` (@ 0x1000163c)
 ```asm
-    => 0x1000163c <+0>:   push    {r7, lr}
+       0x1000163c <+0>:   push    {r7, lr}
        0x1000163e <+2>:   add     r7, sp, #0
        0x10001640 <+4>:   sub     sp, #16
        0x10001642 <+6>:   str     r0, [sp, #4]
        0x10001644 <+8>:   str     r0, [sp, #8]
        0x10001646 <+10>: bl      0x10009dba <raw::Executor::spawner>
        0x1000164a <+14>: bl      0x10000e30 <__cortex_m_rt_main::{closure}>
-    => 0x10001650 <+20>: ldr     r0, [sp, #4]
+       0x10001650 <+20>: ldr     r0, [sp, #4]
        0x10001652 <+22>: bl      0x10009daa <raw::Executor::poll>
        0x10001656 <+26>: wfe
        0x10001658 <+28>: b.n     0x10001650
@@ -194,7 +194,7 @@ Below is **every** assembler instruction captured, with mangled ↔ demangled na
 
 ### 6. `run_cycle` Future Constructor (@ 0x10001904)
 ```asm
-    => 0x10001904 <+0>:   push    {r7, lr}
+       0x10001904 <+0>:   push    {r7, lr}
        0x10001906 <+2>:   add     r7, sp, #0
        0x10001908 <+4>:   sub     sp, #12
        0x1000190a <+6>:   str     r1, [sp, #0]    # button ptr
@@ -212,7 +212,7 @@ Below is **every** assembler instruction captured, with mangled ↔ demangled na
 
 ### 7. `run_cycle` Poll State Machine (@ 0x100006a0)
 ```asm
-    => 0x100006a0 <+0>:   push    {r4, r6, r7, lr}
+       0x100006a0 <+0>:   push    {r4, r6, r7, lr}
        0x100006a2 <+2>:   add     r7, sp, #8
        0x100006a4 <+4>:   sub     sp, #192        # stack for state
        0x100006aa <+10>:  str     r1, [sp, #20]   # button ptr save
