@@ -1,4 +1,4 @@
-![image](https://github.com/mytechnotalent/rust_embassy_pico_project/blob/main/rust_embassy_pico_project?raw=true)
+![image](https://github.com/mytechnotalent/rust_embassy_pico_project/blob/main/rust_embassy_pico_project.jpg?raw=true)
 
 # Rust Embassy Pico Project
 
