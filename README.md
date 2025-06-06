@@ -127,11 +127,11 @@ Make sure you have:
 
 Build:
 
-cargo build --release
+`cargo build`
 
 Flash:
 
-cargo flash --chip RP2040 --target thumbv6m-none-eabi --release
+`cargo flash`
 
 ---
 
@@ -143,7 +143,7 @@ cargo flash --chip RP2040 --target thumbv6m-none-eabi --release
 ---
 
 ## License
-MIT License
+Apache-2.0 License
 
 ---
 
