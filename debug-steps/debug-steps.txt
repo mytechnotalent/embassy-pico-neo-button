@@ -1,0 +1,15 @@
+arm-none-eabi-nm -C target/thumbv6m-none-eabi/debug/rust_embassy_pico_project | grep Reset 
+100001c0 T Reset
+
+target remote :1337
+monitor reset halt
+set $pc = 0x100001c0
+disas
+
+set $pc = 0x100001e2
+s
+disas
+
+set $pc = 0x10000670
+s
+disas

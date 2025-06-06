@@ -2,4 +2,4 @@
 
 probe-rs gdb \
     target/thumbv6m-none-eabi/debug/rust_embassy_pico_project \
-    --chip RP2040
+    --chip RP2040 --speed 4000
