@@ -15,7 +15,7 @@ use embassy_rp::gpio::{Input, Pin, Pull};
 /// * `Input<'static>` - Configured input with pull-up.
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// let button = button::init(p.PIN_16);
 /// ```
 pub fn init(pin: impl Pin) -> Input<'static> {

@@ -1082,7 +1082,6 @@ dependencies = [
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "panic-probe",
- "smart-leds",
 ]
 
 [[package]]
